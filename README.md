@@ -95,3 +95,17 @@ A NodePort service was used for simplicity in local testing. This can be replace
 ### Container Registry:
 Docker Hub or any other registry can be used for cloud deployments.
 
+### Repository Contents
+
+1. Source Code:
+app.py: Simple Flask application serving "Hello, World!".
+2. Dockerfile:
+Instructions to build the container image.
+3. Kubernetes Manifests:
+deployment.yaml: Kubernetes Deployment and Service configuration.
+4. README.md:
+Comprehensive documentation.
+5. Optional Files 
+CI/CD configuration files - github/workflows/ci_cd_pipeline.yml
+
+Additional Assets: A script for setting up the Kubernetes cluster (setup_script.sh)
