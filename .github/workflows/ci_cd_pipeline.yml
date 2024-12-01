@@ -31,6 +31,10 @@ jobs:
       env:
         KUBECONFIG: ~/.kube/config
 
+    - name: Test Kubernetes connection
+      run: |
+        kubectl cluster-info
+       
     - name: Kubernetes Deployment
       run: |
         kubectl apply -f deployment.yaml
