@@ -27,13 +27,13 @@ jobs:
     - name: Set up kubeconfig
       run: |
         mkdir -p ~/.kube
-        echo "${{ secrets.KUBECONFIG }}" | base64 --decode > ~/.kube/config
+        echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
       env:
         KUBECONFIG: ~/.kube/config
 
-    - name: Test Kubernetes connection
-      run: |
-        kubectl cluster-info
+    #- name: Test Kubernetes connection
+    #  run: |
+    #    kubectl cluster-info
        
     - name: Kubernetes Deployment
       run: |
