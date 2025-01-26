@@ -1,0 +1,98 @@
+name: Create Standalone Retailer Release
+on: 
+  workflow_dispatch:
+
+    inputs:
+      standalonePrefix:
+        description: 'Standalone Prefix'
+        required: true
+        type: choice
+        options:
+          - "ALC REBATE"
+          - "SERVICE"
+
+      retailerName:
+        description: 'Retailer Name'
+        required: true
+        type: choice
+        options:
+          - "99 Cents Only"
+          - "ARG Brink's Market"
+          - "ARG CheckersXtra"
+          - "ARG Docs Food Stores"
+          - "ARG Edwards Food Giant"
+          - "ARG Heritage"
+          - "ARG Kennies"
+          - "ARG Market Basket"
+          - "ARG Mize's Thriftway"
+          - "ARG Naifehs"
+          - "ARG PDG Piggly Wigglys"
+          - "ARG Richs Fresh Market"
+          - "Circle K"
+          - "Cub Foods"
+          - "Dierbergs"
+          - "Hen House"
+          - "Homeland"
+          - "Homeland Cash Saver"
+          - "Homeland Food World"
+          - "Homeland Piggly Wiggly"
+          - "Homeland United"
+          - "IGA Main"
+          - "IGA Rebates"
+          - "Mike's Sweet App"
+          - "PDI Technologies"
+          - "Save-A-Lot"
+          - "Scott's Test"
+          - "Shop 'n Save"
+          - "Sprys"
+          - "The Market"
+          - "The Market Blue Mart"
+          - "The Market Orange Mart"
+          - "The Market Red Mart"
+          - "The Market Yellow Mart"
+          - "TSMC Foodmaxx"
+          - "TSMC Luckysupermarkets"
+          - "TSMC Savemart"
+          - "UNFI Food Depot"
+          - "UNFI Knowlans"
+          - "UNFI Shoppers"
+
+      retailerReleaseVersion:
+        description: 'Retailer Release Version, <major>.<minor>.<patch> (e.g 1.1.0 or 3.2.5 or 1.0.5).'
+        required: true
+        type: string
+      
+
+jobs:
+  Create-Standalone-Retailer-Release:
+    if: github.actor == 'saraujo_swiftly' || github.actor == 'v-lrodriguez_swiftly' || github.actor == 'moconnell_swiftly' || github.actor == 'v-mseybold_swiftly'
+    name: Create Standalone Retailer release
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run New-ReleaseVersion.ps1
+        shell: pwsh
+        run: ./New-ReleaseVersion.ps1 -UserEmail ${{ secrets.JIRA_API_EMAIL }} -UserJiraApiToken ${{ secrets.JIRA_API_TOKEN }} -StandalonePrefix "${{ inputs.standalonePrefix }}" -RetailerName "${{ inputs.retailerName }}" -RetailerVersion "${{ inputs.retailerReleaseVersion }}"
+
+  Create-Standalone-Retailer-Release-Filters:
+    needs: Create-Standalone-Retailer-Release
+    if: github.actor == 'saraujo_swiftly' || github.actor == 'v-lrodriguez_swiftly' || github.actor == 'moconnell_swiftly' || github.actor == 'v-mseybold_swiftly'
+    name: Create Standalone Retailer release filters
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run New-ReleaseFilters.ps1
+        shell: pwsh
+        run: ./New-ReleaseFilters.ps1 -UserEmail ${{ secrets.JIRA_API_EMAIL }} -UserJiraApiToken ${{ secrets.JIRA_API_TOKEN }} -StandalonePrefix "${{ inputs.standalonePrefix }}" -RetailerName "${{ inputs.retailerName }}" -RetailerVersion "${{ inputs.retailerReleaseVersion }}"
+
+  Create-Standalone-Retailer-Release-Notes:
+    needs: Create-Standalone-Retailer-Release-Filters
+    if: github.actor == 'saraujo_swiftly' || github.actor == 'v-lrodriguez_swiftly' || github.actor == 'moconnell_swiftly' || github.actor == 'v-mseybold_swiftly'
+    name: Create Standalone Retailer release notes
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run New-ReleaseNotes.ps1
+        shell: pwsh
+        run: ./New-ReleaseNotes.ps1 -UserEmail ${{ secrets.JIRA_API_EMAIL }} -UserJiraApiToken ${{ secrets.JIRA_API_TOKEN }} -StandalonePrefix "${{ inputs.standalonePrefix }}" -RetailerName "${{ inputs.retailerName }}" -RetailerVersion "${{ inputs.retailerReleaseVersion }}"
+
