@@ -1,0 +1,39 @@
+name: Un-release a Platform Release
+on: 
+  workflow_dispatch:
+
+    inputs:
+      prefix:
+        description: 'Prefix'
+        required: true
+        type: choice
+        options:
+          - "MOBILE"
+          - "WEB"
+
+      platformVersion:
+        description: 'Platform Version, <major>.<minor>.<patch> (e.g 1.1.0 or 3.2.5 or 1.0.5).'
+        required: true
+        type: string
+
+jobs:
+  Unrelease-Platform-Release:
+    if: github.actor == 'saraujo_swiftly' || github.actor == 'v-lrodriguez_swiftly' || github.actor == 'moconnell_swiftly' || github.actor == 'v-mseybold_swiftly'
+    name: Un-release Platform release
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Release-ReleaseVersion.ps1 -Unrelease
+        shell: pwsh
+        run: ./Release-ReleaseVersion.ps1 -UserEmail ${{ secrets.JIRA_API_EMAIL }} -UserJiraApiToken ${{ secrets.JIRA_API_TOKEN }} -Prefix "${{ inputs.prefix }}" -PlatformVersion "${{ inputs.platformVersion }}" -Unrelease
+
+  Create-Platform-Release-Filters:
+    needs: Unrelease-Platform-Release
+    if: github.actor == 'saraujo_swiftly' || github.actor == 'v-lrodriguez_swiftly' || github.actor == 'moconnell_swiftly' || github.actor == 'v-mseybold_swiftly'
+    name: Create Platform release filters
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run New-ReleaseFilters.ps1
+        shell: pwsh
+        run: ./New-ReleaseFilters.ps1 -UserEmail ${{ secrets.JIRA_API_EMAIL }} -UserJiraApiToken ${{ secrets.JIRA_API_TOKEN }} -Prefix "${{ inputs.prefix }}" -PlatformVersion "${{ inputs.platformVersion }}" -OverwriteExistingFilters

@@ -1,0 +1,125 @@
+name: Create Retailer Release
+on: 
+  workflow_dispatch:
+
+    inputs:
+      prefix:
+        description: 'Prefix'
+        required: true
+        type: choice
+        options:
+          - "MOBILE"
+          - "WEB"
+
+      retailerName:
+        description: 'Retailer Name'
+        required: true
+        type: choice
+        options:
+          - "99 Cents Only"
+          - "ARG Brink's Market"
+          - "ARG CheckersXtra"
+          - "ARG Docs Food Stores"
+          - "ARG Edwards Food Giant"
+          - "ARG Heritage"
+          - "ARG Kennies"
+          - "ARG Market Basket"
+          - "ARG Mize's Thriftway"
+          - "ARG Naifehs"
+          - "ARG PDG Piggly Wigglys"
+          - "ARG Richs Fresh Market"
+          - "Circle K"
+          - "Dierbergs"
+          - "Hen House"
+          - "Homeland"
+          - "Homeland Cash Saver"
+          - "Homeland Food World"
+          - "Homeland Piggly Wiggly"
+          - "Homeland United"
+          - "Mike's Sweet App"
+          - "PDI Technologies"
+          - "Save-A-Lot"
+          - "Scott's Test"
+          - "Shop 'n Save"
+          - "Sprys"
+          - "The Market"
+          - "The Market Blue Mart"
+          - "The Market Orange Mart"
+          - "The Market Red Mart"
+          - "The Market Yellow Mart"
+          - "TSMC Foodmaxx"
+          - "TSMC Luckysupermarkets"
+          - "TSMC Savemart"
+          - "UNFI Food Depot"
+          - "UNFI Knowlans"
+          - "UNFI Shoppers"
+
+      retailerReleaseVersion:
+        description: 'Retailer Release Version, <major>.<minor>.<patch> (e.g 1.1.0 or 3.2.5 or 1.0.5) or <8 digit date>.<patch> (e.g 20240315.1).'
+        required: true
+        type: string
+
+      platformVersion:
+        description: 'Platform Version, <major>.<minor>.<patch> (e.g 1.1.0 or 3.2.5 or 1.0.5).'
+        required: true
+        type: string
+
+
+jobs:
+  Create-Retailer-Release:
+    if: github.actor == 'saraujo_swiftly' || github.actor == 'v-lrodriguez_swiftly' || github.actor == 'moconnell_swiftly' || github.actor == 'v-mseybold_swiftly'
+    name: Create Retailer release
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run New-ReleaseVersion.ps1
+        shell: pwsh
+        run: ./New-ReleaseVersion.ps1 -UserEmail ${{ secrets.JIRA_API_EMAIL }} -UserJiraApiToken ${{ secrets.JIRA_API_TOKEN }} -Prefix "${{ inputs.prefix }}" -RetailerName "${{ inputs.retailerName }}" -RetailerVersion "${{ inputs.retailerReleaseVersion }}" -PlatformVersion "${{ inputs.platformVersion }}"
+
+  Create-Retailer-Release-Filters:
+    needs: Create-Retailer-Release 
+    if: github.actor == 'saraujo_swiftly' || github.actor == 'v-lrodriguez_swiftly' || github.actor == 'moconnell_swiftly' || github.actor == 'v-mseybold_swiftly'
+    name: Create Retailer release filters
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run New-ReleaseFilters.ps1
+        shell: pwsh
+        run: ./New-ReleaseFilters.ps1 -UserEmail ${{ secrets.JIRA_API_EMAIL }} -UserJiraApiToken ${{ secrets.JIRA_API_TOKEN }} -Prefix "${{ inputs.prefix }}" -RetailerName "${{ inputs.retailerName }}" -RetailerVersion "${{ inputs.retailerReleaseVersion }}" -PlatformVersion "${{ inputs.platformVersion }}" 
+
+
+  Create-Retailer-Release-Notes:
+    needs: Create-Retailer-Release-Filters
+    if: github.actor == 'saraujo_swiftly' || github.actor == 'v-lrodriguez_swiftly' || github.actor == 'moconnell_swiftly' || github.actor == 'v-mseybold_swiftly'
+    name: Create Retailer release notes
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run New-ReleaseNotes.ps1
+        shell: pwsh
+        run: ./New-ReleaseNotes.ps1 -UserEmail ${{ secrets.JIRA_API_EMAIL }} -UserJiraApiToken ${{ secrets.JIRA_API_TOKEN }} -Prefix "${{ inputs.prefix }}" -RetailerName "${{ inputs.retailerName }}" -RetailerVersion "${{ inputs.retailerReleaseVersion }}" -PlatformVersion "${{ inputs.platformVersion }}" 
+
+
+  Recreate-Next-Version-Filters-And-Release-Notes:
+    needs: Create-Retailer-Release-Notes
+    if: github.actor == 'saraujo_swiftly' || github.actor == 'v-lrodriguez_swiftly' || github.actor == 'moconnell_swiftly' || github.actor == 'v-mseybold_swiftly'
+    name: Re-create next version Filters and Release Notes
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Re-create next version Filters and Release Notes if Next Version exists
+        shell: pwsh
+        run: |
+          $releaseVersion = ./New-ReleaseObject -UserEmail ${{ secrets.JIRA_API_EMAIL }} -UserJiraApiToken ${{ secrets.JIRA_API_TOKEN }} -Prefix "${{ inputs.prefix }}" -RetailerName "${{ inputs.retailerName }}" -RetailerVersion "${{ inputs.retailerReleaseVersion }}" -PlatformVersion "${{ inputs.platformVersion }}" 
+          $releaseVersion | fl 
+          if ( $releaseVersion.NextVersion -ne '-NONE-' )
+          {
+            Write-Host "There is a next version: $($releaseVersion.NextVersion)"
+            Write-Host "Re-creating Filters and Release Notes for '$($releaseVersion.NextVersion), $($releaseVersion.NextVersionIncludedPlatformName)'..."
+            ./New-ReleaseFilters.ps1 -UserEmail ${{ secrets.JIRA_API_EMAIL }} -UserJiraApiToken ${{ secrets.JIRA_API_TOKEN }} -Prefix "${{ inputs.prefix }}" -RetailerName "${{ inputs.retailerName }}" -RetailerVersion $($releaseVersion.NextVersionNumber) -PlatformVersion $($releaseVersion.NextVersionIncludedPlatformVersion) -OverwriteExistingFilters
+            ./New-ReleaseNotes.ps1 -UserEmail ${{ secrets.JIRA_API_EMAIL }} -UserJiraApiToken ${{ secrets.JIRA_API_TOKEN }} -Prefix "${{ inputs.prefix }}" -RetailerName "${{ inputs.retailerName }}" -RetailerVersion $($releaseVersion.NextVersionNumber) -PlatformVersion $($releaseVersion.NextVersionIncludedPlatformVersion) -OverwriteExistingPage
+          }
+          else
+          {
+            Write-Host "There is no next version after '$($releaseVersion.Name)'.  No need to rebuild Filters and Release Notes."
+          }

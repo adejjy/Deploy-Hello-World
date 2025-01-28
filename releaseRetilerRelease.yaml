@@ -1,0 +1,89 @@
+name: Release a Retailer Release
+on: 
+  workflow_dispatch:
+
+    inputs:
+      prefix:
+        description: 'Prefix'
+        required: true
+        type: choice
+        options:
+          - "MOBILE"
+          - "WEB"
+
+      retailerName:
+        description: 'Retailer Name'
+        required: true
+        type: choice
+        options:
+          - "99 Cents Only"
+          - "ARG Brink's Market"
+          - "ARG CheckersXtra"
+          - "ARG Docs Food Stores"
+          - "ARG Edwards Food Giant"
+          - "ARG Heritage"
+          - "ARG Kennies"
+          - "ARG Market Basket"
+          - "ARG Mize's Thriftway"
+          - "ARG Naifehs"
+          - "ARG PDG Piggly Wigglys"
+          - "ARG Richs Fresh Market"
+          - "Circle K"
+          - "Dierbergs"
+          - "Hen House"
+          - "Homeland"
+          - "Homeland Cash Saver"
+          - "Homeland Food World"
+          - "Homeland Piggly Wiggly"
+          - "Homeland United"
+          - "Mike's Sweet App"
+          - "PDI Technologies"
+          - "Save-A-Lot"
+          - "Scott's Test"
+          - "Shop 'n Save"
+          - "Sprys"
+          - "The Market"
+          - "The Market Blue Mart"
+          - "The Market Orange Mart"
+          - "The Market Red Mart"
+          - "The Market Yellow Mart"
+          - "TSMC Foodmaxx"
+          - "TSMC Luckysupermarkets"
+          - "TSMC Savemart"
+          - "UNFI Food Depot"
+          - "UNFI Knowlans"
+          - "UNFI Shoppers"
+      
+      retailerReleaseVersion:
+        description: 'Retailer Release Version, <major>.<minor>.<patch> (e.g 1.1.0 or 3.2.5 or 1.0.5) or <8 digit date>.<patch> (e.g 20240315.1).'
+        required: true
+        type: string
+
+      platformVersion:
+        description: 'Platform Version, <major>.<minor>.<patch> (e.g 1.1.0 or 3.2.5 or 1.0.5).'
+        required: true
+        type: string
+  
+
+jobs:
+  Release-Retailer-Release:
+    if: github.actor == 'saraujo_swiftly' || github.actor == 'v-lrodriguez_swiftly' || github.actor == 'moconnell_swiftly' || github.actor == 'v-mseybold_swiftly'
+    name: Release Retailer Release
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Release-ReleaseVersion.ps1
+        shell: pwsh
+        run: ./Release-ReleaseVersion.ps1 -UserEmail ${{ secrets.JIRA_API_EMAIL }} -UserJiraApiToken ${{ secrets.JIRA_API_TOKEN }} -Prefix "${{ inputs.prefix }}" -RetailerName "${{ inputs.retailerName }}" -RetailerVersion "${{ inputs.retailerReleaseVersion }}" -PlatformVersion "${{ inputs.platformVersion }}" -PerformTheRelease -OverrideOpenIssues
+
+  Delete-Retailer-Release-Filters:
+    needs: Release-Retailer-Release
+    if: github.actor == 'saraujo_swiftly' || github.actor == 'v-lrodriguez_swiftly' || github.actor == 'moconnell_swiftly' || github.actor == 'v-mseybold_swiftly'
+    name: Delete Retailer release filters
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run 
+        shell: pwsh
+        run: .\Remove-CrossProjectVersions.ps1 -UserEmail ${{ secrets.JIRA_API_EMAIL }} -UserJiraApiToken ${{ secrets.JIRA_API_TOKEN }} -Prefix "${{ inputs.prefix }}" -RetailerName "${{ inputs.retailerName }}" -RetailerVersion "${{ inputs.retailerReleaseVersion }}" -PlatformVersion "${{ inputs.platformVersion }}" -DeleteFilters 
+
